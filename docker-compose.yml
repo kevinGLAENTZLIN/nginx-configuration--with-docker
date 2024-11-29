@@ -1,0 +1,76 @@
+services:
+    backend:
+        build:
+            context: backend
+            target: development
+        command: "npm start"
+        environment:
+            - DATABASE_DB=${DATABASE_DB}
+            - DATABASE_USER=${DATABASE_USER}
+            - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+            - DATABASE_HOST=${DATABASE_HOST}
+            - NODE_ENV=${NODE_ENV}
+            - ACCESS_TOKEN_SECRET=${ACCESS_TOKEN_SECRET}
+            - REFRESH_TOKEN_SECRET=${REFRESH_TOKEN_SECRET}
+            - CLIENT_URL=${CLIENT_URL}
+            - PORT=${PORT}
+            - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
+            - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
+            - GITHUB_REDIRECT_URI=${GITHUB_REDIRECT_URI}
+        ports:
+            - 8080:8080
+            - 9229:9229
+            - 9230:9230
+        volumes:
+            - ./backend/src:/code/src:ro
+            - ./backend/package.json:/code/package.json
+            - ./backend/package-lock.json:/code/package-lock.json
+            - back-notused:/opt/app/node_modules
+        networks:
+            - private
+
+        depends_on:
+            - db
+
+    db:
+        container_name: db_maria
+        image: mariadb:10.6.4-focal
+        command: "--default-authentication-plugin=mysql_native_password"
+        restart: always
+        volumes:
+            - ./db-data:/var/lib/mysql/data
+            - ./backend/src/config/schema.sql:/docker-entrypoint-initdb.d/init.sql
+        networks:
+            - private
+        ports:
+            - 3306:3306
+        environment:
+            - MYSQL_DATABASE=your_database
+            - MYSQL_ROOT_PASSWORD=your_password
+
+    frontend:
+        build:
+            context: frontend
+            target: builder
+
+        ports:
+            - 3000:3000
+        environment:
+            - REACT_APP_API_URL=${REACT_APP_API_URL}
+        volumes:
+            - ./frontend/src:/code/src
+            - /code/node_modules
+        networks:
+            - public
+
+        depends_on:
+            - backend
+
+networks:
+    public:
+        driver: bridge
+    private:
+        driver: bridge
+volumes:
+    back-notused:
+    db-data:
